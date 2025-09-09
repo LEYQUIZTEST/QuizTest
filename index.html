@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocabulary Quiz</title>
+<style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    h1 { color: #00aaff; }
+    .question { margin-top: 20px; font-weight: bold; color: #ffaa00; }
+    input { padding: 5px; font-size: 16px; }
+    button { padding: 5px 10px; margin-left: 5px; font-size: 16px; }
+    .feedback { margin-top: 10px; font-weight: bold; }
+    .correct { color: green; }
+    .wrong { color: red; }
+    .answer { color: darkcyan; }
+</style>
+</head>
+<body>
+
+<h1>Vocabulary Quiz</h1>
+
+<label for="mode">Rejimi seçin:</label>
+<select id="mode">
+    <option value="az_to_en">Azərbaycan → İngilis</option>
+    <option value="en_to_az">İngilis → Azərbaycan</option>
+</select>
+<button id="startBtn">Başla</button>
+
+<div id="quizArea" style="display:none;">
+    <div class="question" id="question"></div>
+    <input type="text" id="answerInput" placeholder="Cavabınızı yazın">
+    <button id="submitBtn">Təsdiqlə</button>
+    <div class="feedback" id="feedback"></div>
+</div>
+
+<div id="resultArea" style="display:none;">
+    <h2>Nəticə</h2>
+    <div id="score"></div>
+    <button id="restartBtn">Yenidən başla</button>
+</div>
+
+<script>
+const words = [
+    {Eng:["Able","Capable","Skillful"], Az:["Bacarıqlı"]},
+    {Eng:["Ability","Capability"], Az:["Bacarıq"]},
+    {Eng:["Sociable"], Az:["İstiqanlı"]},
+    {Eng:["Friendly","Frank","Kind hearted","Sincere","Heartily"], Az:["Səmimi"]},
+    {Eng:["Joyful","Joyous","Cheerful","Merry","Glad","Jolly"], Az:["Şən","Şad","Gülərüz"]},
+    {Eng:["Joy","Happiness"], Az:["Xoşbəxtlik","Sevinc"]},
+    {Eng:["Diligent","Hardworking","Industrious"], Az:["Zəhmətsevər"]},
+    {Eng:["Fair"], Az:["Ədalətli"]},
+    {Eng:["Justice"], Az:["Ədalət"]},
+    {Eng:["Accurate","Tidy","Neat"], Az:["Səliqəli"]},
+    {Eng:["Lovely","Beloved","Favorite"], Az:["Sevimli"]},
+    {Eng:["Darling"], Az:["Əzizim"]},
+    {Eng:["Honest"], Az:["Vicdanlı"]},
+    {Eng:["Honesty"], Az:["Vicdan"]},
+    {Eng:["Honour"], Az:["Şərəf"]},
+    {Eng:["Honourable"], Az:["Şərəfli"]},
+    {Eng:["Glory","Fame","Splendour"], Az:["Şan-şöhrət"]},
+    {Eng:["Glorious","Magnificent","Splendid","Wonderful","Amazing"], Az:["Dəbdəbəli","Gözəl","Qəşəng"]},
+    {Eng:["Hospitable"], Az:["Qonaqpərvər"]}
+];
+
+let quiz = [];
+let currentIndex = 0;
+let score = 0;
+
+const startBtn = document.getElementById('startBtn');
+const quizArea = document.getElementById('quizArea');
+const questionEl = document.getElementById('question');
+const answerInput = document.getElementById('answerInput');
+const submitBtn = document.getElementById('submitBtn');
+const feedbackEl = document.getElementById('feedback');
+const resultArea = document.getElementById('resultArea');
+const scoreEl = document.getElementById('score');
+const restartBtn = document.getElementById('restartBtn');
+
+startBtn.addEventListener('click', () => {
+    score = 0;
+    currentIndex = 0;
+    const mode = document.getElementById('mode').value;
+    quiz = words.sort(() => Math.random() - 0.5);
+    quizArea.style.display = 'block';
+    resultArea.style.display = 'none';
+    startBtn.style.display = 'none';
+    document.getElementById('mode').disabled = true;
+    showQuestion(mode);
+});
+
+submitBtn.addEventListener('click', () => {
+    const mode = document.getElementById('mode').value;
+    checkAnswer(mode);
+});
+
+restartBtn.addEventListener('click', () => {
+    startBtn.style.display = 'inline';
+    document.getElementById('mode').disabled = false;
+    quizArea.style.display = 'none';
+    resultArea.style.display = 'none';
+    feedbackEl.innerHTML = '';
+    answerInput.value = '';
+});
+
+function showQuestion(mode) {
+    answerInput.value = '';
+    feedbackEl.innerHTML = '';
+    if (currentIndex < quiz.length) {
+        if (mode === 'az_to_en') {
+            questionEl.textContent = "Sual: " + quiz[currentIndex].Az.join(", ");
+        } else {
+            questionEl.textContent = "Sual: " + quiz[currentIndex].Eng.join(", ");
+        }
+    } else {
+        quizArea.style.display = 'none';
+        resultArea.style.display = 'block';
+        scoreEl.textContent = `Düzgün cavablar: ${score} / ${quiz.length}`;
+    }
+}
+
+function checkAnswer(mode) {
+    const userAnswer = answerInput.value.trim();
+    const correctAnswers = mode === 'az_to_en' ? quiz[currentIndex].Eng : quiz[currentIndex].Az;
+
+    // Case-insensitive yoxlama
+    const isCorrect = correctAnswers.some(ans => ans.localeCompare(userAnswer, undefined, { sensitivity: 'accent' }) === 0);
+
+    if (isCorrect) {
+        feedbackEl.innerHTML = "✔️ Düzgün!<br>Doğru cavablar: " + correctAnswers.join(", ");
+        feedbackEl.className = "feedback correct";
+        score++;
+    } else {
+        feedbackEl.innerHTML = "❌ Səhv!<br>Doğru cavablar: " + correctAnswers.join(", ");
+        feedbackEl.className = "feedback wrong";
+    }
+    currentIndex++;
+    setTimeout(() => showQuestion(mode), 1500);
+}
+</script>
+
+</body>
+</html>
