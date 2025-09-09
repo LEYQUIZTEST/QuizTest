@@ -122,7 +122,11 @@ function showQuestion(mode) {
 function checkAnswer(mode) {
     const userAnswer = answerInput.value.trim();
     const correctAnswers = mode === 'az_to_en' ? quiz[currentIndex].Eng : quiz[currentIndex].Az;
-    if (correctAnswers.includes(userAnswer)) {
+
+    // Case-insensitive yoxlama
+    const isCorrect = correctAnswers.some(ans => ans.localeCompare(userAnswer, undefined, { sensitivity: 'accent' }) === 0);
+
+    if (isCorrect) {
         feedbackEl.innerHTML = "✔️ Düzgün!<br>Doğru cavablar: " + correctAnswers.join(", ");
         feedbackEl.className = "feedback correct";
         score++;
