@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Vocabulary Quiz</title>
+<style>
+  /* --- Ümumi stil --- */
+  body { font-family: 'Arial', sans-serif; padding: 20px; background: #f0f8ff; margin:0;}
+  h1 { color: #1a73e8; text-align:center; }
+  button { padding: 8px 14px; margin: 5px; cursor:pointer; border:none; border-radius:6px; transition:0.3s; }
+  button:hover { background-color:#1a73e8; color:white; transform:scale(1.05);}
+  input { padding:6px; margin:5px 0; border-radius:5px; border:1px solid #aaa; transition:0.3s; }
+  input:focus { border-color:#1a73e8; box-shadow:0 0 5px rgba(26,115,232,0.5);}
+  #quizArea, #teacherPanel, #adminPanel, #setupArea, #adminLogin, #resultArea { display:none; margin-top:20px; }
+  .question { font-weight:bold; color:#ff9800; margin-bottom:10px; font-size:1.2em; }
+  .feedback { margin-top:10px; font-weight:bold; }
+  .correct { color:green; }
+  .wrong { color:red; }
+  .hint { font-weight:bold; color:#1a73e8; margin-left:10px; transition:0.3s; }
+  #status { margin-top:10px; font-weight:bold; }
+  table { border-collapse: collapse; width:100%; margin-top:10px; }
+  th,td { border:1px solid #aaa; padding:5px; text-align:left; }
+  th { background:#eee; }
+  @media (max-width:768px){ input { width:90%; } button { width:90%; } }
+</style>
+</head>
+<body>
+
+<h1>Interactive Vocabulary Quiz</h1>
+
+<!-- Rol seçimi -->
+<div id="roleSelection">
+  <label>Rol seçin:</label><br>
+  <button id="studentBtn">Tələbə</button>
+  <button id="teacherBtn">Müəllim</button>
+  <button id="adminBtn">Admin</button>
+</div>
+
+<!-- Admin login -->
+<div id="adminLogin">
+  <label>Admin şifrəsi:</label>
+  <input type="password" id="adminPass" placeholder="Şifrə">
+  <button id="adminLoginBtn">Daxil ol</button>
+  <button id="adminBackBtn">Başa qayıt</button>
+</div>
+
+<!-- Müəllim paneli -->
+<div id="teacherPanel">
+  <h2>Müəllim Paneli - Yeni söz əlavə et</h2>
+  <div>
+    <label>Azərbaycan dili:</label>
+    <input type="text" id="azInput" placeholder="Məsələn: Sevimli">
+  </div>
+  <div>
+    <label>İngilis dili (bir və ya bir neçə sinonim):</label>
+    <div id="engInputs">
+      <input type="text" placeholder="Məsələn: Lovely">
+    </div>
+    <button id="addSynonymBtn">+ Sinonim əlavə et</button>
+  </div>
+  <button id="saveWordBtn">Saxla və Tələbə moduna əlavə et</button>
+  <button id="teacherBackBtn">Başa qayıt</button>
+</div>
+
+<!-- Quiz Setup -->
+<div id="setupArea">
+  <label for="modeSelect">Rejim seçin:</label>
+  <select id="modeSelect">
+    <option value="az_to_en">Azərbaycan → İngilis</option>
+    <option value="en_to_az">İngilis → Azərbaycan</option>
+  </select>
+  <br><br>
+  <label for="speedSelect">Quiz rejimi:</label>
+  <select id="speedSelect">
+    <option value="speed">Speed Mode</option>
+    <option value="slow">Slow Mode</option>
+  </select>
+  <br><br>
+  <button id="startBtn">Başla</button>
+  <button id="setupBackBtn">Başa qayıt</button>
+</div>
+
+<!-- Quiz area -->
+<div id="quizArea">
+  <div class="question" id="question"></div>
+  <div id="inputsContainer"></div>
+  <div>
+    <button id="passBtn">Pass</button>
+    <button id="nextBtn" style="display:none;">Next</button>
+  </div>
+  <div class="feedback" id="feedback"></div>
+  <div id="status">Düz: 0 | Səhv: 0 | Vaxt: 0s</div>
+  <button id="quizBackBtn">Başa qayıt</button>
+</div>
+
+<!-- Result -->
+<div id="resultArea">
+  <h2>Nəticə</h2>
+  <div id="score"></div>
+  <div id="totalTime"></div>
+  <button id="restartBtn">Yenidən başla</button>
+  <button id="resultBackBtn">Başa qayıt</button>
+</div>
+
+<!-- Admin Panel -->
+<div id="adminPanel">
+  <h2>Admin Paneli - Bütün sözlər</h2>
+  <button id="adminAddWordBtn">Yeni söz əlavə et</button>
+  <table id="adminTable">
+    <thead><tr><th>Azərbaycan</th><th>İngilis</th><th>Əməliyyat</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <button id="adminBackBtn2">Başa qayıt</button>
+</div>
+
+<script>
+// --- Başlanğıc sözlər ---
+let words = [
+  {Eng:["Able","Capable","Skillful"], Az:["Bacarıqlı"]},
+  {Eng:["Ability","Capability"], Az:["Bacarıq"]},
+  {Eng:["Sociable"], Az:["İstiqanlı"]},
+  {Eng:["Friendly","Frank","Kind hearted","Sincere","Heartily"], Az:["Səmimi"]},
+  {Eng:["Joyful","Joyous","Cheerful","Merry","Glad","Jolly","Unlike"], Az:["Şən","Şad","Gülərüz"]},
+  {Eng:["Joy","Happiness"], Az:["Xoşbəxtlik","Sevinc"]},
+  {Eng:["Diligent","Hardworking","Industrious"], Az:["Zəhmətsevər"]},
+  {Eng:["Fair"], Az:["Ədalətli"]},
+  {Eng:["Justice"], Az:["Ədalət"]},
+  {Eng:["Accurate","Tidy","Neat"], Az:["Səliqəli"]},
+  {Eng:["Lovely","Beloved","Favorite"], Az:["Sevimli"]},
+  {Eng:["Darling"], Az:["Əzizim"]},
+  {Eng:["Honest"], Az:["Vicdanlı"]},
+  {Eng:["Honesty"], Az:["Vicdan"]},
+  {Eng:["Honour"], Az:["Şərəf"]},
+  {Eng:["Honourable"], Az:["Şərəfli"]},
+  {Eng:["Glory","Fame","Splendour"], Az:["Şan-şöhrət"]},
+  {Eng:["Glorious","Magnificent","Splendid","Wonderful","Amazing"], Az:["Dəbdəbəli","Gözəl","Qəşəng"]},
+  {Eng:["Glorify"], Az:["Tərifləmək","Məth etmək"]},
+  {Eng:["Hospitable"], Az:["Qonaqpərvər"]},
+  {Eng:["Modest"], Az:["Təvazökar"]},
+  {Eng:["Modern","Contemporary","Up-to-date","Fashionable"], Az:["Müasir"]},
+  {Eng:["To praise","To award","To reward"], Az:["Mükafatlandırmaq"]},
+  {Eng:["Qualified","Competent"], Az:["İxtisaslı"]},
+  {Eng:["Literate"], Az:["Savadlı"]},
+  {Eng:["To be delighted with","To be pleased with"], Az:["Məmnun olmaq"]},
+  {Eng:["To be satisfied with","To agree","Consent"], Az:["Razılaşmaq"]},
+  {Eng:["Attentive","Careful"], Az:["Diqqətli"]},
+  {Eng:["Careful"], Az:["Qayğıkeş"]},
+  {Eng:["To respect"], Az:["Hörmət etmək"]},
+  {Eng:["Respectable","Respectful","Reputable"], Az:["Hörmətli"]},
+  {Eng:["Appreciate"], Az:["Yüksək qiymətləndirmək"]},
+  {Eng:["Resolute","Firm","Decisive","Conclusive"], Az:["Qətiyyətli"]},
+  {Eng:["Successful","Lucky"], Az:["Uğurlu"]},
+  {Eng:["To improve","To develop"], Az:["İnkişaf etdirmək","Təkmilləşdirmək"]},
+  {Eng:["Flourish","Thrive","Prosper","Blossom","Bloom"], Az:["Çiçəklənmək"]},
+  {Eng:["Prosperity"], Az:["Çiçəklənmə"]},
+  {Eng:["Courage","Bravery"], Az:["Cəsarət"]},
+  {Eng:["Courageous","Brave","Bold"], Az:["Cəsur"]},
+  {Eng:["To encourage"], Az:["Cəsarətləndirmək"]},
+  {Eng:["To be grateful to smb for smth","To be thankful"], Az:["Minnətdar olmaq"]},
+  {Eng:["Gratitude"], Az:["Minnətdarlıq"]},
+  {Eng:["Well behaviour"], Az:["Tərbiyəli"]},
+  {Eng:["Pass"], Az:["Keçmək"]},
+  {Eng:["Support","Aid","Help","To do favour","To give a hand","To asist"], Az:["Yardım etmək"]},
+  {Eng:["Amazing","Astonishing","Surprising"], Az:["Heyrətamiz","Təəccüblü"]},
+  {Eng:["To applause","Clap"], Az:["Alqışlamaq"]},
+  {Eng:["Achieve","Succeed in","Optain"], Az:["Nail olmaq"]},
+  {Eng:["Achievement"], Az:["Nailiyyət"]},
+  {Eng:["Tasty","Delicious"], Az:["Dadlı"]},
+  {Eng:["Pleasant"], Az:["Xoş"]},
+  {Eng:["Graceful","Attractive","Wonderful"], Az:["Ecazkar","Cazibədar"]},
+  {Eng:["Polite"], Az:["Nəzakətli"]},
+  {Eng:["Patient"], Az:["Səbirli","Hövsələli"]},
+  {Eng:["Useful","Helpful"], Az:["Faydalı"]},
+  {Eng:["Release","Liberate"], Az:["Azad etmək"]},
+  {Eng:["To claim","To need","To demand","To require"], Az:["Tələb etmək"]},
+  {Eng:["To rely on"], Az:["Etibar etmək"]},
+  {Eng:["Devoted","Faithful"], Az:["Sədaqətli"]},
+  {Eng:["Reliable"], Az:["Etibarlı"]}
+];
+
+// --- LocalStorage yükleme ---
+if(localStorage.getItem('customWords')) words = words.concat(JSON.parse(localStorage.getItem('customWords')));
+if(localStorage.getItem('quizState')){
+  const state = JSON.parse(localStorage.getItem('quizState'));
+  var quiz = state.quiz || [];
+  var currentIndex = state.currentIndex || 0;
+  var score = state.score || 0;
+  var wrong = state.wrong || 0;
+  var passed = state.passed || [];
+  var timer = state.timer || 0;
+} else {
+  var quiz = [], currentIndex = 0, score = 0, wrong = 0, passed = [], timer = 0;
+}
+var interval;
+
+// --- DOM Elements ---
+const studentBtn = document.getElementById('studentBtn');
+const teacherBtn = document.getElementById('teacherBtn');
+const adminBtn = document.getElementById('adminBtn');
+const roleSelection = document.getElementById('roleSelection');
+
+const adminLogin = document.getElementById('adminLogin');
+const adminPass = document.getElementById('adminPass');
+const adminLoginBtn = document.getElementById('adminLoginBtn');
+const adminBackBtn = document.getElementById('adminBackBtn');
+
+const teacherPanel = document.getElementById('teacherPanel');
+const addSynonymBtn = document.getElementById('addSynonymBtn');
+const saveWordBtn = document.getElementById('saveWordBtn');
+const engInputsDiv = document.getElementById('engInputs');
+const azInput = document.getElementById('azInput');
+const teacherBackBtn = document.getElementById('teacherBackBtn');
+
+const setupArea = document.getElementById('setupArea');
+const modeSelect = document.getElementById('modeSelect');
+const speedSelect = document.getElementById('speedSelect');
+const startBtn = document.getElementById('startBtn');
+const setupBackBtn = document.getElementById('setupBackBtn');
+
+const quizArea = document.getElementById('quizArea');
+const questionEl = document.getElementById('question');
+const inputsContainer = document.getElementById('inputsContainer');
+const feedbackEl = document.getElementById('feedback');
+const nextBtn = document.getElementById('nextBtn');
+const passBtn = document.getElementById('passBtn');
+const statusEl = document.getElementById('status');
+const quizBackBtn = document.getElementById('quizBackBtn');
+
+const resultArea = document.getElementById('resultArea');
+const scoreEl = document.getElementById('score');
+const totalTimeEl = document.getElementById('totalTime');
+const restartBtn = document.getElementById('restartBtn');
+const resultBackBtn = document.getElementById('resultBackBtn');
+
+const adminPanel = document.getElementById('adminPanel');
+const adminTable = document.getElementById('adminTable').querySelector('tbody');
+const adminAddWordBtn = document.getElementById('adminAddWordBtn');
+const adminBackBtn2 = document.getElementById('adminBackBtn2');
+
+// --- Role Selection ---
+studentBtn.addEventListener('click',()=>{ roleSelection.style.display='none'; setupArea.style.display='block'; });
+teacherBtn.addEventListener('click',()=>{ roleSelection.style.display='none'; teacherPanel.style.display='block'; });
+adminBtn.addEventListener('click',()=>{ roleSelection.style.display='none'; adminLogin.style.display='block'; });
+
+// --- Admin Login ---
+adminLoginBtn.addEventListener('click',()=>{
+  if(adminPass.value==='Sagol321!'){ adminLogin.style.display='none'; adminPanel.style.display='block'; renderAdminTable(); }
+  else alert('Şifrə yalnışdır!');
+});
+adminBackBtn.addEventListener('click',()=>{ adminLogin.style.display='none'; roleSelection.style.display='block'; });
+
+// --- Teacher Panel ---
+addSynonymBtn.addEventListener('click',()=>{
+  const input = document.createElement('input');
+  input.type='text'; input.placeholder='Yeni sinonim';
+  engInputsDiv.appendChild(input);
+});
+
+saveWordBtn.addEventListener('click',()=>{
+  const azWord = azInput.value.trim();
+  const engWords = Array.from(engInputsDiv.querySelectorAll('input')).map(i=>i.value.trim()).filter(i=>i);
+  if(!azWord || engWords.length===0){ alert('Hər iki tərəfi doldurun!'); return; }
+  const newWord = {Az:[azWord], Eng:engWords};
+  words.push(newWord);
+  let customWords = JSON.parse(localStorage.getItem('customWords')||'[]');
+  customWords.push(newWord); localStorage.setItem('customWords',JSON.stringify(customWords));
+  alert('Söz əlavə edildi!');
+  azInput.value=''; engInputsDiv.innerHTML='<input type="text" placeholder="Məsələn: Lovely">';
+});
+
+// --- Quiz Setup ---
+startBtn.addEventListener('click',()=>{
+  quiz = [...words].sort(()=>Math.random()-0.5);
+  currentIndex=0; score=0; wrong=0; passed=[]; timer=0;
+  setupArea.style.display='none'; quizArea.style.display='block';
+  quizMode = speedSelect.value;
+  interval = setInterval(()=>{ timer++; updateStatus(); },1000);
+  showQuestion();
+});
+
+setupBackBtn.addEventListener('click',()=>{ setupArea.style.display='none'; roleSelection.style.display='block'; });
+
+// --- Quiz Functions ---
+function showQuestion(){
+  inputsContainer.innerHTML=''; feedbackEl.textContent=''; nextBtn.style.display='none';
+  if(currentIndex>=quiz.length){ showResult(); return; }
+  const current = quiz[currentIndex];
+  const correctAnswers = modeSelect.value==='az_to_en'? current.Eng : current.Az;
+  questionEl.textContent=`Sual: ${modeSelect.value==='az_to_en'? current.Az.join(', '): current.Eng.join(', ')}`;
+  
+  correctAnswers.forEach(ans=>{
+    const input = document.createElement('input');
+    input.type='text'; input.placeholder='Cavab'; input.classList.add('answerInput'); input.disabled=false;
+    input.dataset.ans = ans; input.dataset.hintCount=0;
+
+    const hintSpan = document.createElement('span'); hintSpan.classList.add('hint'); hintSpan.textContent='*'.repeat(ans.length);
+
+    const hintBtn = document.createElement('button'); hintBtn.textContent='Hint'; hintBtn.style.marginLeft='5px';
+    hintBtn.addEventListener('click',()=>{
+      let count = parseInt(input.dataset.hintCount);
+      if(count<3){
+        let arr = hintSpan.textContent.split('');
+        let unrevealed = [];
+        for(let i=0;i<arr.length;i++) if(arr[i]==='*') unrevealed.push(i);
+        if(unrevealed.length>0){
+          let idx = unrevealed[Math.floor(Math.random()*unrevealed.length)];
+          arr[idx]=ans[idx]; hintSpan.textContent=arr.join(''); input.dataset.hintCount=count+1;
+        }
+      }
+    });
+
+    inputsContainer.appendChild(input);
+    inputsContainer.appendChild(hintSpan);
+    inputsContainer.appendChild(hintBtn);
+  });
+
+  const submitBtn = document.createElement('button'); submitBtn.textContent='Təsdiqlə';
+  submitBtn.addEventListener('click',checkAnswer);
+  inputsContainer.appendChild(submitBtn);
+}
+
+function checkAnswer(){
+  const inputs = Array.from(document.querySelectorAll('.answerInput'));
+  const correctAnswers = inputs.map(i=>i.dataset.ans);
+  const userAnswers = inputs.map(i=>i.value.trim());
+
+  const isCorrect = correctAnswers.length===userAnswers.length &&
+    correctAnswers.every(ans=>userAnswers.some(u=>ans.localeCompare(u,undefined,{sensitivity:'accent'})===0));
+
+  if(isCorrect){ score++; feedbackEl.className='feedback correct'; feedbackEl.textContent=`✔️ Düzgün! Doğru cavablar: ${correctAnswers.join(', ')}`; }
+  else{ wrong++; feedbackEl.className='feedback wrong'; feedbackEl.textContent=`❌ Səhv! Doğru cavablar: ${correctAnswers.join(', ')}`; }
+
+  if(quizMode==='slow'){ inputs.forEach(i=>i.disabled=true); nextBtn.style.display='inline'; }
+  else setTimeout(nextQuestion,1500);
+  updateStatus();
+}
+
+nextBtn.addEventListener('click',()=>{
+  nextQuestion();
+});
+
+passBtn.addEventListener('click',()=>{
+  passed.push(quiz[currentIndex]); currentIndex++; showQuestion();
+});
+
+function nextQuestion(){
+  currentIndex++; if(currentIndex>=quiz.length && passed.length>0){ quiz=passed; passed=[]; currentIndex=0; }
+  showQuestion();
+}
+
+function updateStatus(){ statusEl.textContent=`Düz: ${score} | Səhv: ${wrong} | Vaxt: ${timer}s`; }
+
+function showResult(){
+  quizArea.style.display='none'; resultArea.style.display='block';
+  scoreEl.textContent=`Düzgün cavablar: ${score} / ${quiz.length}`;
+  totalTimeEl.textContent=`Vaxt: ${timer}s`;
+  clearInterval(interval);
+}
+
+// --- Quiz Back Buttons ---
+quizBackBtn.addEventListener('click',()=>{
+  clearInterval(interval); quizArea.style.display='none'; setupArea.style.display='block';
+});
+restartBtn.addEventListener('click',()=>{
+  resultArea.style.display='none'; setupArea.style.display='block';
+});
+resultBackBtn.addEventListener('click',()=>{
+  resultArea.style.display='none'; roleSelection.style.display='block';
+});
+
+// --- Admin Panel ---
+function renderAdminTable(){
+  adminTable.innerHTML='';
+  words.forEach((w,i)=>{
+    const tr = document.createElement('tr');
+    const azTd = document.createElement('td'); azTd.textContent=w.Az.join(', ');
+    const engTd = document.createElement('td'); engTd.textContent=w.Eng.join(', ');
+    const opsTd = document.createElement('td');
+
+    const editBtn = document.createElement('button'); editBtn.textContent='Redaktə et';
+    editBtn.addEventListener('click',()=>{
+      const azInput = document.createElement('input'); azInput.value=w.Az.join(', ');
+      const engInput = document.createElement('input'); engInput.value=w.Eng.join(', ');
+      azTd.innerHTML=''; engTd.innerHTML='';
+      azTd.appendChild(azInput); engTd.appendChild(engInput);
+      const saveBtn = document.createElement('button'); saveBtn.textContent='Təsdiqlə';
+      saveBtn.addEventListener('click',()=>{
+        w.Az = azInput.value.split(',').map(s=>s.trim());
+        w.Eng = engInput.value.split(',').map(s=>s.trim());
+        localStorage.setItem('customWords',JSON.stringify(words.filter(x=>!['Bacarıqlı','Bacarıq','İstiqanlı','Səmimi','Şən','Şad','Gülərüz','Xoşbəxtlik','Sevinc','Zəhmətsevər','Ədalətli','Ədalət','Səliqəli','Sevimli','Əzizim','Vicdanlı','Vicdan','Şərəf','Şərəfli','Şan-şöhrət','Dəbdəbəli','Gözəl','Qəşəng','Qonaqpərvər'].includes(x.Az[0]))));
+        renderAdminTable();
+      });
+      opsTd.innerHTML=''; opsTd.appendChild(saveBtn);
+    });
+
+    const delBtn = document.createElement('button'); delBtn.textContent='Sil';
+    delBtn.addEventListener('click',()=>{
+      words.splice(i,1);
+      localStorage.setItem('customWords',JSON.stringify(words.filter(x=>!['Bacarıqlı','Bacarıq','İstiqanlı','Səmimi','Şən','Şad','Gülərüz','Xoşbəxtlik','Sevinc','Zəhmətsevər','Ədalətli','Ədalət','Səliqəli','Sevimli','Əzizim','Vicdanlı','Vicdan','Şərəf','Şərəfli','Şan-şöhrət','Dəbdəbəli','Gözəl','Qəşəng','Qonaqpərvər'].includes(x.Az[0]))));
+      renderAdminTable();
+    });
+
+    opsTd.appendChild(editBtn); opsTd.appendChild(delBtn);
+    tr.appendChild(azTd); tr.appendChild(engTd); tr.appendChild(opsTd);
+    adminTable.appendChild(tr);
+  });
+}
+
+adminBackBtn2.addEventListener('click',()=>{ adminPanel.style.display='none'; roleSelection.style.display='block'; });
+adminAddWordBtn.addEventListener('click',()=>{
+  const tr = document.createElement('tr');
+  const azTd = document.createElement('td'); const azInput = document.createElement('input'); azTd.appendChild(azInput);
+  const engTd = document.createElement('td'); const engInput = document.createElement('input'); engTd.appendChild(engInput);
+  const opsTd = document.createElement('td');
+  const saveBtn = document.createElement('button'); saveBtn.textContent='Təsdiqlə';
+  saveBtn.addEventListener('click',()=>{
+    const azVal = azInput.value.trim();
+    const engVal = engInput.value.trim().split(',').map(s=>s.trim());
+    if(!azVal || engVal.length===0) return alert('Hər iki tərəfi doldurun!');
+    const newWord = {Az:[azVal], Eng:engVal};
+    words.push(newWord);
+    localStorage.setItem('customWords',JSON.stringify(words.filter(x=>!['Bacarıqlı','Bacarıq','İstiqanlı','Səmimi','Şən','Şad','Gülərüz','Xoşbəxtlik','Sevinc','Zəhmətsevər','Ədalətli','Ədalət','Səliqəli','Sevimli','Əzizim','Vicdanlı','Vicdan','Şərəf','Şərəfli','Şan-şöhrət','Dəbdəbəli','Gözəl','Qəşəng','Qonaqpərvər'].includes(x.Az[0]))));
+    renderAdminTable();
+  });
+  opsTd.appendChild(saveBtn); tr.appendChild(azTd); tr.appendChild(engTd); tr.appendChild(opsTd);
+  adminTable.appendChild(tr);
+});
+</script>
+</body>
+</html>
