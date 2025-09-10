@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Interactive Vocabulary Quiz</title>
+<title>LEYQUIZ</title>
 <style>
   /* --- Ümumi stil --- */
   body { font-family: 'Arial', sans-serif; padding: 20px; background: #f0f8ff; margin:0;}
@@ -27,7 +27,7 @@
 </head>
 <body>
 
-<h1>Interactive Vocabulary Quiz</h1>
+<h1>Special quiz platform for Leyla</h1>
 
 <!-- Rol seçimi -->
 <div id="roleSelection">
@@ -244,10 +244,29 @@ teacherBtn.addEventListener('click',()=>{ roleSelection.style.display='none'; te
 adminBtn.addEventListener('click',()=>{ roleSelection.style.display='none'; adminLogin.style.display='block'; });
 
 // --- Admin Login ---
-adminLoginBtn.addEventListener('click',()=>{
-  if(adminPass.value==='Sagol321!'){ adminLogin.style.display='none'; adminPanel.style.display='block'; renderAdminTable(); }
-  else alert('Şifrə yalnışdır!');
+// Hash funksiyası
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Admin login
+adminLoginBtn.addEventListener('click', async ()=>{
+  const enteredPass = adminPass.value;
+  const hash = await sha256(enteredPass);
+  const storedHash = "619759b7b598909933a42f24a9fa6bca1f8744f3d77d9c944c2085f7b8547244"; // SHA-256 hash-i
+  
+  if(hash === storedHash){
+    adminLogin.style.display='none';
+    adminPanel.style.display='block';
+    renderAdminTable();
+  } else {
+    alert('Şifrə yalnışdır!');
+  }
 });
+
 adminBackBtn.addEventListener('click',()=>{ adminLogin.style.display='none'; roleSelection.style.display='block'; });
 
 // --- Teacher Panel ---
